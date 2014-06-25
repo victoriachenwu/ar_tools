@@ -281,35 +281,26 @@ namespace ar_pose
       // **** convert to ROS frame
 	  // i have no idea what this is doing 
       double quat[4], pos[3];
-
-	
 	  convertToRosFrame(arQuat, arPos, quat, pos);
       
       ROS_DEBUG (" QUAT: Pos x: %3.5f  y: %3.5f  z: %3.5f", pos[0], pos[1], pos[2]);
       ROS_DEBUG ("     Quat qx: %3.5f qy: %3.5f qz: %3.5f qw: %3.5f", quat[0], quat[1], quat[2], quat[3]);
 
       // **** publish the marker
-
 	  stuffARMarkerMsg(ar_pose_marker_, pos, quat, image_msg-> header, marker_info); 
-
   	  arMarkerPub_.publish(ar_pose_marker_);
   	  ROS_DEBUG ("Published ar_single marker");
 		
       // **** publish transform between camera and marker
-
-
-		//hijacking - going to publish transform between camera and the meat (invisble marker)
-		//right now, quat+pos represent relationship from camera -> ar marker
-		//work backwards to go from ar marker -> meat.. that is the one we will actually publish
 #if ROS_VERSION_MINIMUM(1, 9, 0)
       tf::Quaternion rotation (quat[0], quat[1], quat[2], quat[3]);
       tf::Vector3 origin (pos[0], pos[1], pos[2]);
-      tf::Transform t (rotation, origin);
+      tf::Transform camera_to_marker_transform (rotation, origin);
 #else
 // DEPRECATED: Fuerte support ends when Hydro is released
       btQuaternion rotation (quat[0], quat[1], quat[2], quat[3]);
       btVector3 origin (pos[0], pos[1], pos[2]);
-      btTransform t (rotation, origin);
+      btTransform camera_to_marker_transform (rotation, origin);
 #endif
 
 
@@ -317,10 +308,10 @@ namespace ar_pose
       {
         if(reverse_transform_)
         {
-          tf::StampedTransform markerToCam (t.inverse(), image_msg->header.stamp, markerFrame_.c_str(), image_msg->header.frame_id);
+          tf::StampedTransform markerToCam (camera_to_marker_transform .inverse(), image_msg->header.stamp, markerFrame_.c_str(), image_msg->header.frame_id);
           broadcaster_.sendTransform(markerToCam);
         } else {
-          tf::StampedTransform camToMarker (t, image_msg->header.stamp, image_msg->header.frame_id, markerFrame_.c_str());
+          tf::StampedTransform camToMarker (camera_to_marker_transform , image_msg->header.stamp, image_msg->header.frame_id, markerFrame_.c_str());
           broadcaster_.sendTransform(camToMarker);
         }
       }
@@ -330,21 +321,33 @@ namespace ar_pose
       if(publishVisualMarkers_)
       {
 #if ROS_VERSION_MINIMUM(1, 9, 0)
-        tf::Vector3 markerOrigin (0, 0, 0.25 * markerWidth_ * AR_TO_ROS);
+        tf::Vector3 markerOrigin (0, 0, 0.25 * markerWidth_ * AR_TO_ROS);	//WHAT ARE THESE MAGIC NUMBERS
         tf::Transform m (tf::Quaternion::getIdentity (), markerOrigin);
-        tf::Transform markerPose = t * m; // marker pose in the camera frame
+        tf::Transform markerPose = camera_to_marker_transform  * m; // marker pose in the camera frame
 #else
 // DEPRECATED: Fuerte support ends when Hydro is released
         btVector3 markerOrigin (0, 0, 0.25 * markerWidth_ * AR_TO_ROS);
         btTransform m (btQuaternion::getIdentity (), markerOrigin);
-        btTransform markerPose = t * m; // marker pose in the camera frame
+        btTransform markerPose = camera_to_marker_transform * m; // marker pose in the camera frame
 #endif
+		
+		publishVisualMarker(rvizMarker_, markerPose, image_msg->header);
+     	ROS_DEBUG ("Published visual marker");
+      }
+    }
+    else
+    {
+      contF = 0;
+      ROS_DEBUG ("Failed to locate marker");
+    }
+  }
+  
+  void ARSinglePublisher::publishVisualMarker(visualization_msgs::Marker &rvizMarker_, tf::Transform camera_to_marker_transform, std_msgs::Header image_header)	{
+  
+        tf::poseTFToMsg(camera_to_marker_transform, rvizMarker_.pose);
 
-      
-        tf::poseTFToMsg(markerPose, rvizMarker_.pose);
-
-			  rvizMarker_.header.frame_id = image_msg->header.frame_id;
-			  rvizMarker_.header.stamp = image_msg->header.stamp;
+			  rvizMarker_.header.frame_id = image_header.frame_id;
+			  rvizMarker_.header.stamp = image_header.stamp;
 			  rvizMarker_.id = 1;
 
 			  rvizMarker_.scale.x = 1.0 * markerWidth_ * AR_TO_ROS;
@@ -360,16 +363,8 @@ namespace ar_pose
 			  rvizMarker_.lifetime = ros::Duration(1.0);
 			
 			  rvizMarkerPub_.publish(rvizMarker_);
-			  ROS_DEBUG ("Published visual marker");
-      }
-    }
-    else
-    {
-      contF = 0;
-      ROS_DEBUG ("Failed to locate marker");
-    }
+ 	
   }
-  
   void ARSinglePublisher::stuffARMarkerMsg(ar_pose::ARMarker &ar_pose_marker, 
   	double pos[3], double quat[4],std_msgs::Header image_header, ARMarkerInfo *marker_info)	
 	{

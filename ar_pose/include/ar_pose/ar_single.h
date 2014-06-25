@@ -84,6 +84,9 @@ namespace ar_pose
 	void convertToRosFrame(double arQuat[4], double arPos[3], double quat[4], double pos[3]);
 	void stuffARMarkerMsg(ar_pose::ARMarker &ar_pose_marker, double pos[3], double quat[4], 
 					std_msgs::Header image_header, ARMarkerInfo *info);
+	void publishVisualMarker(visualization_msgs::Marker &rvizMarker_, tf::Transform camera_to_marker_transform, std_msgs::Header image_header);
+
+
     ros::NodeHandle n_;
     ros::Subscriber sub_;
     tf::TransformBroadcaster broadcaster_;
