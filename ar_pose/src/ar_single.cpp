@@ -275,22 +275,16 @@ namespace ar_pose
 	  arUtilMatMul(marker_to_center_trans_, marker_trans_, final_trans_);
 	  	
       //arUtilMatInv (marker_trans_, cam_trans);
-      //arUtilMat2QuatPos (marker_trans_, arQuat, arPos);
-      arUtilMat2QuatPos (final_trans_, arQuat, arPos);	//let's see what this gives us C:
+      arUtilMat2QuatPos (marker_trans_, arQuat, arPos);
+      //arUtilMat2QuatPos (final_trans_, arQuat, arPos);	//let's see what this gives us C:
 
       // **** convert to ROS frame
 	  // i have no idea what this is doing 
       double quat[4], pos[3];
-    
-      pos[0] = arPos[0] * AR_TO_ROS;
-      pos[1] = arPos[1] * AR_TO_ROS;
-      pos[2] = arPos[2] * AR_TO_ROS;
 
-      quat[0] = -arQuat[0];
-      quat[1] = -arQuat[1];
-      quat[2] = -arQuat[2];
-      quat[3] = arQuat[3];
-
+	
+	  convertToRosFrame(arQuat, arPos, quat, pos);
+      
       ROS_DEBUG (" QUAT: Pos x: %3.5f  y: %3.5f  z: %3.5f", pos[0], pos[1], pos[2]);
       ROS_DEBUG ("     Quat qx: %3.5f qy: %3.5f qz: %3.5f qw: %3.5f", quat[0], quat[1], quat[2], quat[3]);
 
@@ -388,5 +382,22 @@ namespace ar_pose
       ROS_DEBUG ("Failed to locate marker");
     }
   }
+  
+  void stuffARMarkerMsg(ar_pose::ARMarker &ar_pose_marker, double pos[3], double quat[4],
+					std_msgs::Header image_header, uint32_t marker_id, uint32_t confidence)	{
+  	
+  }
+
+  void ARSinglePublisher::convertToRosFrame(double arQuat[4], double arPos[3], double quat[4], double pos[3])	{
+	  pos[0] = arPos[0] * AR_TO_ROS;
+      pos[1] = arPos[1] * AR_TO_ROS;
+      pos[2] = arPos[2] * AR_TO_ROS;
+
+      quat[0] = -arQuat[0];
+      quat[1] = -arQuat[1];
+      quat[2] = -arQuat[2];
+      quat[3] = arQuat[3];
+  }
+
 }                               // end namespace ar_pose
 
