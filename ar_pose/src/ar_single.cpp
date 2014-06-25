@@ -290,23 +290,10 @@ namespace ar_pose
 
       // **** publish the marker
 
-		  ar_pose_marker_.header.frame_id = image_msg->header.frame_id;
-		  ar_pose_marker_.header.stamp    = image_msg->header.stamp;
-		  ar_pose_marker_.id              = marker_info->id;
+	  stuffARMarkerMsg(ar_pose_marker_, pos, quat, image_msg-> header, marker_info); 
 
-		  ar_pose_marker_.pose.pose.position.x = pos[0];
-		  ar_pose_marker_.pose.pose.position.y = pos[1];
-		  ar_pose_marker_.pose.pose.position.z = pos[2];
-
-		  ar_pose_marker_.pose.pose.orientation.x = quat[0];
-		  ar_pose_marker_.pose.pose.orientation.y = quat[1];
-		  ar_pose_marker_.pose.pose.orientation.z = quat[2];
-		  ar_pose_marker_.pose.pose.orientation.w = quat[3];
-		
-		  ar_pose_marker_.confidence = marker_info->cf;
-
-		  arMarkerPub_.publish(ar_pose_marker_);
-		  ROS_DEBUG ("Published ar_single marker");
+  	  arMarkerPub_.publish(ar_pose_marker_);
+  	  ROS_DEBUG ("Published ar_single marker");
 		
       // **** publish transform between camera and marker
 
@@ -383,10 +370,26 @@ namespace ar_pose
     }
   }
   
-  void stuffARMarkerMsg(ar_pose::ARMarker &ar_pose_marker, double pos[3], double quat[4],
-					std_msgs::Header image_header, uint32_t marker_id, uint32_t confidence)	{
-  	
+  void ARSinglePublisher::stuffARMarkerMsg(ar_pose::ARMarker &ar_pose_marker, 
+  	double pos[3], double quat[4],std_msgs::Header image_header, ARMarkerInfo *marker_info)	
+	{
+		  ar_pose_marker_.header.frame_id = image_header.frame_id;
+		  ar_pose_marker_.header.stamp    = image_header.stamp;
+		  ar_pose_marker_.id              = marker_info->id;
+
+		  ar_pose_marker_.pose.pose.position.x = pos[0];
+		  ar_pose_marker_.pose.pose.position.y = pos[1];
+		  ar_pose_marker_.pose.pose.position.z = pos[2];
+
+		  ar_pose_marker_.pose.pose.orientation.x = quat[0];
+		  ar_pose_marker_.pose.pose.orientation.y = quat[1];
+		  ar_pose_marker_.pose.pose.orientation.z = quat[2];
+		  ar_pose_marker_.pose.pose.orientation.w = quat[3];
+		
+		  ar_pose_marker_.confidence = marker_info->cf;
   }
+  
+  
 
   void ARSinglePublisher::convertToRosFrame(double arQuat[4], double arPos[3], double quat[4], double pos[3])	{
 	  pos[0] = arPos[0] * AR_TO_ROS;

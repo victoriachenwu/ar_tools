@@ -83,7 +83,7 @@ namespace ar_pose
 	//Convert from the arToolkit's frame -> ROS's frame, in prep for publishing
 	void convertToRosFrame(double arQuat[4], double arPos[3], double quat[4], double pos[3]);
 	void stuffARMarkerMsg(ar_pose::ARMarker &ar_pose_marker, double pos[3], double quat[4], 
-					std_msgs::Header image_header, uint32_t marker_id, uint32_t confidence);
+					std_msgs::Header image_header, ARMarkerInfo *info);
     ros::NodeHandle n_;
     ros::Subscriber sub_;
     tf::TransformBroadcaster broadcaster_;
