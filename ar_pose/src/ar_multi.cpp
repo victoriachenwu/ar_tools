@@ -157,7 +157,7 @@ namespace ar_pose
     ARUint8 *dataPtr;
     ARMarkerInfo *marker_info;
     int marker_num;
-    int i, k, j;
+    int knownPatternCount, k, j;
 
     /* Get the image from ROSTOPIC
      * NOTE: the dataPtr format is BGR because the ARToolKit library was
@@ -194,42 +194,43 @@ namespace ar_pose
 
     arPoseMarkers_.markers.clear ();
     // check for known patterns
-    for (i = 0; i < objectnum; i++)
+    for (knownPatternCount = 0; knownPatternCount < objectnum; knownPatternCount++)
     {
-      k = -1;
+      k = -1;	//haven't yet seen my pattern yet. 
+	  //marker_num is how many markers were actually found
       for (j = 0; j < marker_num; j++)
       {
-        if (object[i].id == marker_info[j].id)
+        if (object[knownPatternCount].id == marker_info[j].id)
         {
-          if (k == -1)
-            k = j;
+          if (k == -1)	//if this is the first wild sighting
+            k = j;		//which marker matches my pattern?
           else                  // make sure you have the best pattern (highest confidence factor)
           if (marker_info[k].cf < marker_info[j].cf)
             k = j;
         }
-      }
-      if (k == -1)
+      }//end for (j)
+      if (k == -1)	//didn't find my pattern :(
       {
-        object[i].visible = 0;
-        continue;
+        object[knownPatternCount].visible = 0;
+        continue;	//ok. so this just skips all the way to the next knownPatternCount
       }
 
       // calculate the transform for each marker
-      if (object[i].visible == 0)
+      if (object[knownPatternCount].visible == 0)	//if the marker was not found the previous time
       {
-        arGetTransMat (&marker_info[k], object[i].marker_center, object[i].marker_width, object[i].trans);
+        arGetTransMat (&marker_info[k], object[knownPatternCount].marker_center, object[knownPatternCount].marker_width, object[knownPatternCount].trans);
       }
-      else
+      else	//if the marker was found the previous time, use the transform with history
       {
-        arGetTransMatCont (&marker_info[k], object[i].trans,
-                           object[i].marker_center, object[i].marker_width, object[i].trans);
+        arGetTransMatCont (&marker_info[k], object[knownPatternCount].trans,
+                           object[knownPatternCount].marker_center, object[knownPatternCount].marker_width, object[knownPatternCount].trans);
       }
-      object[i].visible = 1;
+      object[knownPatternCount].visible = 1;	//woohoo mark as found
 
       double arQuat[4], arPos[3];
 
       //arUtilMatInv (object[i].trans, cam_trans);
-      arUtilMat2QuatPos (object[i].trans, arQuat, arPos);
+      arUtilMat2QuatPos (object[knownPatternCount].trans, arQuat, arPos);
 
       // **** convert to ROS frame
 
@@ -244,7 +245,7 @@ namespace ar_pose
       quat[2] = -arQuat[2];
       quat[3] = arQuat[3];
 
-      ROS_DEBUG (" Object num %i ------------------------------------------------", i);
+      ROS_DEBUG (" Object num %i------------------------------------------------", knownPatternCount);
       ROS_DEBUG (" QUAT: Pos x: %3.5f  y: %3.5f  z: %3.5f", pos[0], pos[1], pos[2]);
       ROS_DEBUG ("     Quat qx: %3.5f qy: %3.5f qz: %3.5f qw: %3.5f", quat[0], quat[1], quat[2], quat[3]);
 
@@ -253,7 +254,7 @@ namespace ar_pose
       ar_pose::ARMarker ar_pose_marker;
       ar_pose_marker.header.frame_id = image_msg->header.frame_id;
       ar_pose_marker.header.stamp = image_msg->header.stamp;
-      ar_pose_marker.id = object[i].id;
+      ar_pose_marker.id = object[knownPatternCount].id;
 
       ar_pose_marker.pose.pose.position.x = pos[0];
       ar_pose_marker.pose.pose.position.y = pos[1];
@@ -282,7 +283,7 @@ namespace ar_pose
 
       if (publishTf_)
       {
-        tf::StampedTransform camToMarker (t, image_msg->header.stamp, image_msg->header.frame_id, object[i].name);
+        tf::StampedTransform camToMarker (t, image_msg->header.stamp, image_msg->header.frame_id, object[knownPatternCount].name);
         broadcaster_.sendTransform(camToMarker);
       }
 
@@ -291,7 +292,7 @@ namespace ar_pose
       if (publishVisualMarkers_)
       {
 #if ROS_VERSION_MINIMUM(1, 9, 0)
-        tf::Vector3 markerOrigin (0, 0, 0.25 * object[i].marker_width * AR_TO_ROS);
+        tf::Vector3 markerOrigin (0, 0, 0.25 * object[knownPatternCount].marker_width * AR_TO_ROS);
         tf::Transform m (tf::Quaternion::getIdentity (), markerOrigin);
         tf::Transform markerPose = t * m; // marker pose in the camera frame 
 #else
@@ -305,15 +306,15 @@ namespace ar_pose
 
         rvizMarker_.header.frame_id = image_msg->header.frame_id;
         rvizMarker_.header.stamp = image_msg->header.stamp;
-        rvizMarker_.id = object[i].id;
+        rvizMarker_.id = object[knownPatternCount].id;
 
-        rvizMarker_.scale.x = 1.0 * object[i].marker_width * AR_TO_ROS;
-        rvizMarker_.scale.y = 1.0 * object[i].marker_width * AR_TO_ROS;
-        rvizMarker_.scale.z = 0.5 * object[i].marker_width * AR_TO_ROS;
+        rvizMarker_.scale.x = 1.0 * object[knownPatternCount].marker_width * AR_TO_ROS;
+        rvizMarker_.scale.y = 1.0 * object[knownPatternCount].marker_width * AR_TO_ROS;
+        rvizMarker_.scale.z = 0.5 * object[knownPatternCount].marker_width * AR_TO_ROS;
         rvizMarker_.ns = "basic_shapes";
         rvizMarker_.type = visualization_msgs::Marker::CUBE;
         rvizMarker_.action = visualization_msgs::Marker::ADD;
-        switch (i)
+        switch (knownPatternCount)
         {
           case 0:
             rvizMarker_.color.r = 0.0f;
@@ -337,8 +338,8 @@ namespace ar_pose
 
         rvizMarkerPub_.publish(rvizMarker_);
         ROS_DEBUG ("Published visual marker");
-      }
-    }
+      } //fi publishVisualMarkers
+    } //end outer loop of for 
     arMarkerPub_.publish(arPoseMarkers_);
     ROS_DEBUG ("Published ar_multi markers");
   }

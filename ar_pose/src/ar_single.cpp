@@ -109,6 +109,21 @@ namespace ar_pose
     if(publishVisualMarkers_){ 
 		rvizMarkerPub_ = n_.advertise<visualization_msgs::Marker>("visualization_marker", 0);
 	 }
+
+
+	// **** read in static transform - for now it's hardcoded
+	// no rotation. just translation
+	/*
+	marker_to_center_trans_ = {
+		1,0,0,10,
+		0,1,0,0,
+		0,0,1,0
+	};
+	*/
+	marker_to_center_trans_[0][0] = 1;	//identify for 3x3, no rotation
+	marker_to_center_trans_[1][1] = 1;
+	marker_to_center_trans_[2][2] = 1;
+	marker_to_center_trans_[0][3] = 10;
   }
 
   ARSinglePublisher::~ARSinglePublisher (void)
@@ -239,24 +254,32 @@ namespace ar_pose
           k = i;
       }
     }
-
+	//if matching pattern was found
     if (k != -1)
     {
       // **** get the transformation between the marker and the real camera
       double arQuat[4], arPos[3];
 
-      if (!useHistory_ || contF == 0)
+      if (!useHistory_ || contF == 0)	//contF is if we found the marker the previous time
         arGetTransMat (&marker_info[k], marker_center_, markerWidth_, marker_trans_);
       else
         arGetTransMatCont (&marker_info[k], marker_trans_, marker_center_, markerWidth_, marker_trans_);
 
       contF = 1;
 
+	  //get the transformation matrix representing camera -> marker (or is it other way around?)
+	  //compose that with the matrix representing marker -> center of box to get camera -> center of box
+	  //
+	  
+
+	  arUtilMatMul(marker_to_center_trans_, marker_trans_, final_trans_);
+	  	
       //arUtilMatInv (marker_trans_, cam_trans);
-      arUtilMat2QuatPos (marker_trans_, arQuat, arPos);
+      //arUtilMat2QuatPos (marker_trans_, arQuat, arPos);
+      arUtilMat2QuatPos (final_trans_, arQuat, arPos);	//let's see what this gives us C:
 
       // **** convert to ROS frame
-
+	  // i have no idea what this is doing 
       double quat[4], pos[3];
     
       pos[0] = arPos[0] * AR_TO_ROS;
@@ -293,6 +316,10 @@ namespace ar_pose
 		
       // **** publish transform between camera and marker
 
+
+		//hijacking - going to publish transform between camera and the meat (invisble marker)
+		//right now, quat+pos represent relationship from camera -> ar marker
+		//work backwards to go from ar marker -> meat.. that is the one we will actually publish
 #if ROS_VERSION_MINIMUM(1, 9, 0)
       tf::Quaternion rotation (quat[0], quat[1], quat[2], quat[3]);
       tf::Vector3 origin (pos[0], pos[1], pos[2]);

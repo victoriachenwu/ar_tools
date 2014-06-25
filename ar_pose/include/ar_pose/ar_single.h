@@ -109,6 +109,10 @@ namespace ar_pose
     double marker_center_[2];   // Physical Center of the Marker
     double marker_trans_[3][4]; // Marker Transform
 
+	//added in stuff.. for center of box
+	double marker_to_center_trans_[3][4];	//transform from the marker to the center of the box (static)... for now it's defined here
+	double final_trans_[3][4];				//final transform from camera -> boxcenter (or backwards.. no idea T.T)
+
     // **** for visualisation in rviz
     ros::Publisher rvizMarkerPub_;
     visualization_msgs::Marker rvizMarker_;
