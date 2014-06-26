@@ -41,7 +41,13 @@ set(ARPOSEMULTI       ar_multi)
 set(ARPOSEMULTI_SRC   src/ar_multi.cpp src/object.cpp)
 set(ARPOSEMULTI_LIBS  GLU GL glut ARgsub AR ARMulti ARvideo)
 
+set(ARPOSEBUNDLE 	  ar_bundle)
+set(ARPOSEBUNDLE_SRC  src/ar_bundle.cpp src/object.cpp)
+set(ARPOSEBUNDLE_LIBS GLU GL glut ARgsub AR ARMulti ARvideo)
+
 rosbuild_add_executable(${ARPOSESINGLE}  ${ARPOSESINGLE_SRC})
 target_link_libraries(${ARPOSESINGLE}  ${ARPOSESINGLE_LIBS})
 rosbuild_add_executable(${ARPOSEMULTI}  ${ARPOSEMULTI_SRC})
 target_link_libraries(${ARPOSEMULTI}  ${ARPOSEMULTI_LIBS})
+rosbuild_add_executable(${ARPOSEBUNDLE}  ${ARPOSEBUNDLE_SRC})
+target_link_libraries(${ARPOSEBUNDLE}  ${ARPOSEBUNDLE_LIBS})
