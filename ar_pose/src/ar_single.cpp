@@ -123,7 +123,7 @@ namespace ar_pose
 	marker_to_center_trans_[0][0] = 1;	//identify for 3x3, no rotation
 	marker_to_center_trans_[1][1] = 1;
 	marker_to_center_trans_[2][2] = 1;
-	marker_to_center_trans_[0][3] = 10;
+	marker_to_center_trans_[2][3] = -100;
   }
 
   ARSinglePublisher::~ARSinglePublisher (void)
@@ -259,6 +259,7 @@ namespace ar_pose
     {
       // **** get the transformation between the marker and the real camera
       double arQuat[4], arPos[3];
+      double centerARQuat[4], centerARPos[3];	//transform camera -> center of box
 
       if (!useHistory_ || contF == 0)	//contF is if we found the marker the previous time
         arGetTransMat (&marker_info[k], marker_center_, markerWidth_, marker_trans_);
@@ -272,19 +273,25 @@ namespace ar_pose
 	  //
 	  
 
-	  arUtilMatMul(marker_to_center_trans_, marker_trans_, final_trans_);
+//	  arUtilMatMul(marker_to_center_trans_, marker_trans_, final_trans_); //i think these are just backwards
+	  arUtilMatMul(marker_trans_, marker_to_center_trans_, final_trans_); //i think these are just backwards
 	  	
       //arUtilMatInv (marker_trans_, cam_trans);
       arUtilMat2QuatPos (marker_trans_, arQuat, arPos);
-      //arUtilMat2QuatPos (final_trans_, arQuat, arPos);	//let's see what this gives us C:
+      arUtilMat2QuatPos (final_trans_, centerARQuat, centerARPos);	//let's see what this gives us C:
 
       // **** convert to ROS frame
 	  // i have no idea what this is doing 
       double quat[4], pos[3];
+      double centerQuat[4], centerPos[3];	//transform camera -> center of box
 	  convertToRosFrame(arQuat, arPos, quat, pos);
+	  convertToRosFrame(centerARQuat, centerARPos, centerQuat, centerPos);
       
       ROS_DEBUG (" QUAT: Pos x: %3.5f  y: %3.5f  z: %3.5f", pos[0], pos[1], pos[2]);
       ROS_DEBUG ("     Quat qx: %3.5f qy: %3.5f qz: %3.5f qw: %3.5f", quat[0], quat[1], quat[2], quat[3]);
+ 
+      ROS_DEBUG (" center QUAT: Pos x: %3.5f  y: %3.5f  z: %3.5f", centerPos[0], centerPos[1], centerPos[2]);
+      ROS_DEBUG (" center    Quat qx: %3.5f qy: %3.5f qz: %3.5f qw: %3.5f", centerQuat[0], centerQuat[1], centerQuat[2], centerQuat[3]);
 
       // **** publish the marker
 	  stuffARMarkerMsg(ar_pose_marker_, pos, quat, image_msg-> header, marker_info); 
@@ -302,6 +309,10 @@ namespace ar_pose
       btVector3 origin (pos[0], pos[1], pos[2]);
       btTransform camera_to_marker_transform (rotation, origin);
 #endif
+	  // publish transform from camera -> center of box???? I HAVE NO IDEA
+      tf::Quaternion centerRotation (centerQuat[0], centerQuat[1], centerQuat[2], centerQuat[3]);
+      tf::Vector3 centerOrigin (centerPos[0], centerPos[1], centerPos[2]);
+      tf::Transform camera_to_center_transform (centerRotation, centerOrigin);
 
 
       if(publishTf_)
@@ -313,7 +324,11 @@ namespace ar_pose
         } else {
           tf::StampedTransform camToMarker (camera_to_marker_transform , image_msg->header.stamp, image_msg->header.frame_id, markerFrame_.c_str());
           broadcaster_.sendTransform(camToMarker);
+          
+		  tf::StampedTransform camToCenter (camera_to_center_transform, image_msg->header.stamp, image_msg->header.frame_id, "center");
+          broadcaster_.sendTransform(camToCenter);
         }
+		//publsih transform??? IDK 
       }
 
       // **** publish visual marker
@@ -330,7 +345,6 @@ namespace ar_pose
         btTransform m (btQuaternion::getIdentity (), markerOrigin);
         btTransform markerPose = camera_to_marker_transform * m; // marker pose in the camera frame
 #endif
-		
 		publishVisualMarker(rvizMarker_, markerPose, image_msg->header);
      	ROS_DEBUG ("Published visual marker");
       }
