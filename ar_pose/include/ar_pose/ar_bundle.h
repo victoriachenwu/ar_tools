@@ -22,8 +22,8 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef AR_POSE_AR_MULTI_H
-#define AR_POSE_AR_MULTI_H
+#ifndef AR_POSE_AR_BUNDLE_H_
+#define AR_POSE_AR_BUNDLE_H_
 
 #include <string.h>
 #include <stdarg.h>
@@ -69,16 +69,27 @@ const double AR_TO_ROS = 0.001;
 
 namespace ar_pose
 {
-  class ARMultiPublisher
+  class ARBundlePublisher
   {
   public:
-    ARMultiPublisher (ros::NodeHandle & n);
-    ~ARMultiPublisher (void);
+    ARBundlePublisher (ros::NodeHandle & n);
+    ~ARBundlePublisher (void);
 
   private:
     void arInit ();
     void getTransformationCallback (const sensor_msgs::ImageConstPtr &);
     void camInfoCallback (const sensor_msgs::CameraInfoConstPtr &);
+
+	//refactoring stuff here
+	//Convert from the arToolkit's frame -> ROS's frame, in prep for publishing
+	void convertToRosFrame(double arQuat[4], double arPos[3], double quat[4], double pos[3]);
+	void stuffARMarkerMsg(int knownPatternCount, double pos[3], double quat[4], 
+					std_msgs::Header image_header, ARMarkerInfo *info);
+	void publishVisualMarker(int knownPatternCount, tf::Transform camera_to_marker_transform, std_msgs::Header image_header);
+
+	//given the transform matrix of a marker, find where the "center" or master is 
+	void findTransformToCenter(double camera_to_marker_trans[3][4], int knownPatternCount);
+
 
     ros::NodeHandle n_;
     tf::TransformBroadcaster broadcaster_;
@@ -103,6 +114,10 @@ namespace ar_pose
     int objectnum;
     char pattern_filename_[FILENAME_MAX];
 
+	//added stuff for tracking center of box
+//	double marker_to_center_trans_[3][4];	//transform from the marker to the center of the box (static)... for now it's defined here
+	double master_trans_[3][4];				//final transform from camera -> boxcenter (or backwards.. no idea T.T)
+
     ar_pose::ARMarkers arPoseMarkers_;
     int threshold_;
     bool getCamInfo_;
@@ -115,7 +130,7 @@ namespace ar_pose
     IplImage *capture_;
 #endif
 
-  };                            // end class ARMultiPublisher
+  };                            // end class ARBundlePublisher
 }                               //end namespace ar_pose
 
 #endif

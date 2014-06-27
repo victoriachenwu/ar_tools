@@ -22,21 +22,21 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ar_pose/ar_multi.h"
+#include "ar_pose/ar_bundle.h"
 #include "ar_pose/object.h"
 
 int main (int argc, char **argv)
 {
   ros::init (argc, argv, "ar_multi");
   ros::NodeHandle n;
-  ar_pose::ARMultiPublisher ar_multi (n);
+  ar_pose::ARBundlePublisher ar_multi (n);
   ros::spin ();
   return 0;
 }
 
 namespace ar_pose
 {
-  ARMultiPublisher::ARMultiPublisher (ros::NodeHandle & n):n_ (n), it_ (n_)
+  ARBundlePublisher::ARBundlePublisher (ros::NodeHandle & n):n_ (n), it_ (n_)
   {
     std::string local_path;
     std::string package_path = ros::package::getPath (ROS_PACKAGE_NAME);
@@ -73,7 +73,7 @@ namespace ar_pose
     // **** subscribe
 
     ROS_INFO ("Subscribing to info topic");
-    sub_ = n_.subscribe (cameraInfoTopic_, 1, &ARMultiPublisher::camInfoCallback, this);
+    sub_ = n_.subscribe (cameraInfoTopic_, 1, &ARBundlePublisher::camInfoCallback, this);
     getCamInfo_ = false;
 
     // **** advertse 
@@ -85,14 +85,14 @@ namespace ar_pose
     }
   }
 
-  ARMultiPublisher::~ARMultiPublisher (void)
+  ARBundlePublisher::~ARBundlePublisher (void)
   {
     //cvReleaseImage(&capture_); //Don't know why but crash when release the image
     arVideoCapStop ();
     arVideoClose ();
   }
 
-  void ARMultiPublisher::camInfoCallback (const sensor_msgs::CameraInfoConstPtr & cam_info)
+  void ARBundlePublisher::camInfoCallback (const sensor_msgs::CameraInfoConstPtr & cam_info)
   {
     if (!getCamInfo_)
     {
@@ -126,12 +126,12 @@ namespace ar_pose
       arInit ();
 
       ROS_INFO ("Subscribing to image topic");
-      cam_sub_ = it_.subscribe (cameraImageTopic_, 1, &ARMultiPublisher::getTransformationCallback, this);
+      cam_sub_ = it_.subscribe (cameraImageTopic_, 1, &ARBundlePublisher::getTransformationCallback, this);
       getCamInfo_ = true;
     }
   }
 
-  void ARMultiPublisher::arInit ()
+  void ARBundlePublisher::arInit ()
   {
     arInitCparam (&cam_param_);
     ROS_INFO ("*** Camera Parameter ***");
@@ -152,7 +152,7 @@ namespace ar_pose
 #endif
   }
 
-  void ARMultiPublisher::getTransformationCallback (const sensor_msgs::ImageConstPtr & image_msg)
+  void ARBundlePublisher::getTransformationCallback (const sensor_msgs::ImageConstPtr & image_msg)
   {
     ARUint8 *dataPtr;
     ARMarkerInfo *marker_info;
@@ -227,46 +227,31 @@ namespace ar_pose
       }
       object[knownPatternCount].visible = 1;	//woohoo mark as found
 
-      double arQuat[4], arPos[3];
+      double arQuat[4], arPos[3];	//for the marker
+      double masterQuat[4], masterPos[3];	//for the master/center of the box 
 
-      //arUtilMatInv (object[i].trans, cam_trans);
+
+	  //find the transform for the pattern to the center of the box
+	  //updates master_trans_
+	  findTransformToCenter(object[knownPatternCount].trans, knownPatternCount);
+      
+	  //arUtilMatInv (object[i].trans, cam_trans);
       arUtilMat2QuatPos (object[knownPatternCount].trans, arQuat, arPos);
+      arUtilMat2QuatPos (master_trans_, masterQuat, masterPos);
 
       // **** convert to ROS frame
 
       double quat[4], pos[3];
 
-      pos[0] = arPos[0] * AR_TO_ROS;
-      pos[1] = arPos[1] * AR_TO_ROS;
-      pos[2] = arPos[2] * AR_TO_ROS;
+	  convertToRosFrame(arQuat, arPos, quat, pos);
 
-      quat[0] = -arQuat[0];
-      quat[1] = -arQuat[1];
-      quat[2] = -arQuat[2];
-      quat[3] = arQuat[3];
-
-      ROS_DEBUG (" Object num %i------------------------------------------------", knownPatternCount);
+	  ROS_DEBUG (" Object num %i------------------------------------------------", knownPatternCount);
       ROS_DEBUG (" QUAT: Pos x: %3.5f  y: %3.5f  z: %3.5f", pos[0], pos[1], pos[2]);
       ROS_DEBUG ("     Quat qx: %3.5f qy: %3.5f qz: %3.5f qw: %3.5f", quat[0], quat[1], quat[2], quat[3]);
 
-      // **** publish the marker
-
-      ar_pose::ARMarker ar_pose_marker;
-      ar_pose_marker.header.frame_id = image_msg->header.frame_id;
-      ar_pose_marker.header.stamp = image_msg->header.stamp;
-      ar_pose_marker.id = object[knownPatternCount].id;
-
-      ar_pose_marker.pose.pose.position.x = pos[0];
-      ar_pose_marker.pose.pose.position.y = pos[1];
-      ar_pose_marker.pose.pose.position.z = pos[2];
-
-      ar_pose_marker.pose.pose.orientation.x = quat[0];
-      ar_pose_marker.pose.pose.orientation.y = quat[1];
-      ar_pose_marker.pose.pose.orientation.z = quat[2];
-      ar_pose_marker.pose.pose.orientation.w = quat[3];
-
-      ar_pose_marker.confidence = round(marker_info->cf * 100);
-      arPoseMarkers_.markers.push_back (ar_pose_marker);
+      // **** prepare to publish the marker
+	  stuffARMarkerMsg(knownPatternCount, pos, quat,image_msg->header, marker_info);		
+ 
 
       // **** publish transform between camera and marker
 
@@ -302,10 +287,59 @@ namespace ar_pose
         btTransform markerPose = t * m; // marker pose in the camera frame
 #endif
 
+		publishVisualMarker(knownPatternCount, markerPose, image_msg->header); 
+	  }
+  
+	} //end outer loop of for 
+    arMarkerPub_.publish(arPoseMarkers_);
+    ROS_DEBUG ("Published ar_multi markers");
+  
+  }
+
+  void ARBundlePublisher::findTransformToCenter(double camera_to_marker_trans[3][4], int knownPatternCount)	{
+  
+  }
+  void ARBundlePublisher::stuffARMarkerMsg(int knownPatternCount,  
+  	double pos[3], double quat[4],std_msgs::Header image_header, ARMarkerInfo *marker_info)		{
+  
+      ar_pose::ARMarker ar_pose_marker;
+      ar_pose_marker.header.frame_id = image_header.frame_id;
+      ar_pose_marker.header.stamp = image_header.stamp;
+      ar_pose_marker.id = object[knownPatternCount].id;
+
+      ar_pose_marker.pose.pose.position.x = pos[0];
+      ar_pose_marker.pose.pose.position.y = pos[1];
+      ar_pose_marker.pose.pose.position.z = pos[2];
+
+      ar_pose_marker.pose.pose.orientation.x = quat[0];
+      ar_pose_marker.pose.pose.orientation.y = quat[1];
+      ar_pose_marker.pose.pose.orientation.z = quat[2];
+      ar_pose_marker.pose.pose.orientation.w = quat[3];
+
+      ar_pose_marker.confidence = round(marker_info->cf * 100);
+      arPoseMarkers_.markers.push_back (ar_pose_marker);
+
+
+  }
+
+ 
+  void ARBundlePublisher::convertToRosFrame(double arQuat[4], double arPos[3], double quat[4], double pos[3])	{
+	  pos[0] = arPos[0] * AR_TO_ROS;
+      pos[1] = arPos[1] * AR_TO_ROS;
+      pos[2] = arPos[2] * AR_TO_ROS;
+
+      quat[0] = -arQuat[0];
+      quat[1] = -arQuat[1];
+      quat[2] = -arQuat[2];
+      quat[3] = arQuat[3];
+  }
+
+  void ARBundlePublisher::publishVisualMarker(int knownPatternCount, tf::Transform markerPose, std_msgs::Header image_header)	{
+ 
         tf::poseTFToMsg (markerPose, rvizMarker_.pose);
 
-        rvizMarker_.header.frame_id = image_msg->header.frame_id;
-        rvizMarker_.header.stamp = image_msg->header.stamp;
+        rvizMarker_.header.frame_id = image_header.frame_id;
+        rvizMarker_.header.stamp = image_header.stamp;
         rvizMarker_.id = object[knownPatternCount].id;
 
         rvizMarker_.scale.x = 1.0 * object[knownPatternCount].marker_width * AR_TO_ROS;
@@ -339,8 +373,5 @@ namespace ar_pose
         rvizMarkerPub_.publish(rvizMarker_);
         ROS_DEBUG ("Published visual marker");
       } //fi publishVisualMarkers
-    } //end outer loop of for 
-    arMarkerPub_.publish(arPoseMarkers_);
-    ROS_DEBUG ("Published ar_multi markers");
-  }
+  
 } // end namespace ar_pose
