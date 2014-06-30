@@ -86,6 +86,7 @@ namespace ar_pose
 	void stuffARMarkerMsg(int knownPatternCount, double pos[3], double quat[4], 
 					std_msgs::Header image_header, ARMarkerInfo *info);
 	void publishVisualMarker(int knownPatternCount, tf::Transform camera_to_marker_transform, std_msgs::Header image_header);
+	void getMarkerTransform(int knownPatternCount, ARMarkerInfo *info, int seenPatternCount);	//grab marker's transform from artoolkit, stores in object list
 
 	//given the transform matrix of a marker, find where the "center" or master is 
 	void findTransformToCenter(double camera_to_marker_trans[3][4], int knownPatternCount);
@@ -117,6 +118,8 @@ namespace ar_pose
 	//added stuff for tracking center of box
 //	double marker_to_center_trans_[3][4];	//transform from the marker to the center of the box (static)... for now it's defined here
 	double master_trans_[3][4];				//final transform from camera -> boxcenter (or backwards.. no idea T.T)
+	double marker1_to_master[3][4];			//TERRIBLE AND hardcoded for now
+	double marker2_to_master[3][4];			//TERRIBLE AND hardcoded for now
 
     ar_pose::ARMarkers arPoseMarkers_;
     int threshold_;

@@ -150,6 +150,36 @@ namespace ar_pose
 // DEPRECATED: Fuerte support ends when Hydro is released
     capture_ = cvCreateImage (sz_, IPL_DEPTH_8U, 4);
 #endif
+
+	//loading up marker to center transforms	
+	////this will go away in another file.. but for now it's horrible and hardcoded
+	marker1_to_master[0][0] = 1;
+	marker1_to_master[1][1] = 1;
+	marker1_to_master[2][2] = 1;
+	marker1_to_master[2][3] = -100;	//silly arbitrary numbers for now
+	
+	/*
+	 * OK this is weird. world-> camera has a transform... and the axis are all messed up.
+	 * Currently it's supposed to be 
+	 * x forward red 
+	 * y left green
+	 * z up blue
+	 *
+	 * but the marker is instead... blue forward, red left, green up T.T 
+	 *
+	 * so in that reference frame.. it needs to be rotated about the green (y) axis
+	 *
+	 * THERE HAS TO BE A CLASS THAT DOES THIS FOR ME
+	 *
+	 * 0	0	-1	
+	 * 0	1	0
+	 * 1	0	0
+	 */
+	marker2_to_master[0][2] = -1;	
+	marker2_to_master[1][1] = 1;
+	marker2_to_master[2][0] = 1;
+	marker2_to_master[2][3] = -100;	//silly arbitrary numbers for now
+		
   }
 
   void ARBundlePublisher::getTransformationCallback (const sensor_msgs::ImageConstPtr & image_msg)
@@ -215,20 +245,12 @@ namespace ar_pose
         continue;	//ok. so this just skips all the way to the next knownPatternCount
       }
 
-      // calculate the transform for each marker
-      if (object[knownPatternCount].visible == 0)	//if the marker was not found the previous time
-      {
-        arGetTransMat (&marker_info[k], object[knownPatternCount].marker_center, object[knownPatternCount].marker_width, object[knownPatternCount].trans);
-      }
-      else	//if the marker was found the previous time, use the transform with history
-      {
-        arGetTransMatCont (&marker_info[k], object[knownPatternCount].trans,
-                           object[knownPatternCount].marker_center, object[knownPatternCount].marker_width, object[knownPatternCount].trans);
-      }
       object[knownPatternCount].visible = 1;	//woohoo mark as found
 
+	  getMarkerTransform(knownPatternCount, marker_info, k);	//transform is stored in object[knownPatternCount].trans
+
       double arQuat[4], arPos[3];	//for the marker
-      double masterQuat[4], masterPos[3];	//for the master/center of the box 
+      double masterARQuat[4], masterARPos[3];	//for the master/center of the box 
 
 
 	  //find the transform for the pattern to the center of the box
@@ -237,13 +259,13 @@ namespace ar_pose
       
 	  //arUtilMatInv (object[i].trans, cam_trans);
       arUtilMat2QuatPos (object[knownPatternCount].trans, arQuat, arPos);
-      arUtilMat2QuatPos (master_trans_, masterQuat, masterPos);
+      arUtilMat2QuatPos (master_trans_, masterARQuat, masterARPos);
 
       // **** convert to ROS frame
-
       double quat[4], pos[3];
-
+      double masterQuat[4], masterPos[3];
 	  convertToRosFrame(arQuat, arPos, quat, pos);
+	  convertToRosFrame(masterARQuat, masterARPos, masterQuat, masterPos);
 
 	  ROS_DEBUG (" Object num %i------------------------------------------------", knownPatternCount);
       ROS_DEBUG (" QUAT: Pos x: %3.5f  y: %3.5f  z: %3.5f", pos[0], pos[1], pos[2]);
@@ -266,10 +288,18 @@ namespace ar_pose
       btTransform t (rotation, origin);
 #endif
 
+	  tf::Quaternion masterRotation (masterQuat[0], masterQuat[1], masterQuat[2], masterQuat[3]);
+      tf::Vector3 masterOrigin (masterPos[0], masterPos[1], masterPos[2]);
+      tf::Transform masterTransform (masterRotation, masterOrigin);
+
       if (publishTf_)
       {
         tf::StampedTransform camToMarker (t, image_msg->header.stamp, image_msg->header.frame_id, object[knownPatternCount].name);
         broadcaster_.sendTransform(camToMarker);
+
+		tf::StampedTransform camToMaster (masterTransform, image_msg->header.stamp, image_msg->header.frame_id, "master");
+        broadcaster_.sendTransform(camToMaster);
+
       }
 
       // **** publish visual marker
@@ -296,8 +326,33 @@ namespace ar_pose
   
   }
 
-  void ARBundlePublisher::findTransformToCenter(double camera_to_marker_trans[3][4], int knownPatternCount)	{
+  void ARBundlePublisher::getMarkerTransform(int knownPatternCount, ARMarkerInfo *marker_info, int seenPatternCount)	{
   
+      // calculate the transform for each marker
+      if (object[knownPatternCount].visible == 0)	//if the marker was not found the previous time
+      {
+        arGetTransMat (&marker_info[seenPatternCount], object[knownPatternCount].marker_center, object[knownPatternCount].marker_width, object[knownPatternCount].trans);
+      }
+      else	//if the marker was found the previous time, use the transform with history
+      {
+        arGetTransMatCont (&marker_info[seenPatternCount], object[knownPatternCount].trans,
+                           object[knownPatternCount].marker_center, object[knownPatternCount].marker_width, object[knownPatternCount].trans);
+      }
+
+
+  }
+  void ARBundlePublisher::findTransformToCenter(double camera_to_marker_trans[3][4], int knownPatternCount)	{
+ 	///... this is going to be ugly
+	//hard coded shenanigans for now (only 2 markers)
+	switch (knownPatternCount)	{
+		case 0:
+			arUtilMatMul(camera_to_marker_trans, marker1_to_master, master_trans_);
+			break;
+		case 1:
+			arUtilMatMul(camera_to_marker_trans, marker2_to_master, master_trans_);
+			break;
+	}
+	
   }
   void ARBundlePublisher::stuffARMarkerMsg(int knownPatternCount,  
   	double pos[3], double quat[4],std_msgs::Header image_header, ARMarkerInfo *marker_info)		{
