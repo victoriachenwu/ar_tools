@@ -1,0 +1,11 @@
+2
+
+#arbitrarily the master tag
+1	0	0	0
+0	1	0	0
+0	0	1	-100
+
+#rotated about green axis
+0	0	-1	0
+0	1	0	0
+-1	0	0	-100

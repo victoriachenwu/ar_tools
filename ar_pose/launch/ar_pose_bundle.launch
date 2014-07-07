@@ -21,5 +21,8 @@
     <param name="marker_pattern_list" type="string"
       value="$(find ar_pose)/data/multiple"/>
     <param name="threshold" type="int" value="100"/>
+	<param name="marker_transforms_list" type="string"
+      value="$(find ar_pose)/data/multiple_transforms"/>
+
   </node>
 </launch>

@@ -1,0 +1,16 @@
+#the number of patterns to be recognized
+2
+
+#pattern 2	-> experiement.. 
+4x4_2
+data/patt.hiro
+75.0
+0.0 0.0
+
+#pattern 1
+4x4_1
+data/patt.kanji
+79.0
+0.0 0.0
+
+
