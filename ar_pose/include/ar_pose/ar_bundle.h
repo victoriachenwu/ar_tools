@@ -112,8 +112,10 @@ namespace ar_pose
     ARParam cam_param_;         // Camera Calibration Parameters
     ARMultiMarkerInfoT *config; // AR Marker Info
     ar_object::ObjectData_T * object;
+    ar_object::Transform_T* tfs;
     int objectnum;
     char pattern_filename_[FILENAME_MAX];
+    char transforms_filename_[FILENAME_MAX];
 
 	//added stuff for tracking center of box
 //	double marker_to_center_trans_[3][4];	//transform from the marker to the center of the box (static)... for now it's defined here

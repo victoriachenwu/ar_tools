@@ -41,12 +41,12 @@ namespace ar_object
     double marker_center[2];
   } ObjectData_T;
 
-  typedef double Transform[3][4];
+  typedef double Transform_T[3][4];
 
   ObjectData_T *read_ObjData (char *name, int *objectnum);
 
   //Read in transforms representing marker frame wrt center frame from file name name.
   //file must have givenObjNum number of transforms 
-  Transform *read_Transforms (char *name, int givenObjNum); 
+  Transform_T *read_Transforms (char *name, int givenObjNum); 
 }
 #endif

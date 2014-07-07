@@ -34,21 +34,47 @@
 #include <ros/ros.h>
 #include <ros/package.h>
 
-#include "ar_pose/object.h"
+#include "ar_pose/transforms.h"
 
-namespace ar_object
+namespace ar_transforms
 {
 
   static char *get_buff (char *buf, int n, FILE * fp);
 
 
-  Transform *read_Transforms (char* name, int givenObjNum)	{
+  Transform_T *read_Transforms (char* name, int givenObjNum)	{
 
-	Transform *list;
+	Transform_T *list;
+    FILE *fp;
+	int objectnum;
+    char buf[256], buf1[256];
+      std::string package_path = ros::package::getPath (ROS_PACKAGE_NAME);
+
+      ROS_INFO ("Opening Transform Data File %s", name);
+
+    if ((fp = fopen (name, "r")) == NULL)
+    {
+      ROS_INFO ("Can't find the file - quitting");
+      ROS_BREAK ();
+    }
+
+    get_buff (buf, 256, fp);
+    if (sscanf (buf, "%d", &objectnum) != 1)
+    {
+      fclose (fp);
+      ROS_BREAK ();
+    }
+	if(objectnum != givenObjNum)	{
+	  ROS_INFO("Incorrect number of Transform matrices provided - quitting.");
+	  ROS_BREAK ();
+	}
+
+ 
 	return list;
 
   }
 
+  /*
   ObjectData_T *read_ObjData (char *name, int *objectnum)
   {
     FILE *fp;
@@ -130,6 +156,7 @@ namespace ar_object
     return (object);
   }
 
+*/
   //get up to n chars, disregarding blank lines and lines starting with #s
   static char *get_buff (char *buf, int n, FILE * fp)
   {

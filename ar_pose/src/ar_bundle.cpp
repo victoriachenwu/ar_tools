@@ -24,6 +24,7 @@
 
 #include "ar_pose/ar_bundle.h"
 #include "ar_pose/object.h"
+#include "ar_pose/transforms.h"
 
 int main (int argc, char **argv)
 {
@@ -41,6 +42,7 @@ namespace ar_pose
     std::string local_path;
     std::string package_path = ros::package::getPath (ROS_PACKAGE_NAME);
 	std::string default_path = "data/object_4x4";
+	std::string default_path_tfs = "data/tfs";
     ros::NodeHandle n_param ("~");
     XmlRpc::XmlRpcValue xml_marker_center;
 
@@ -70,6 +72,12 @@ namespace ar_pose
 	}
 	ROS_INFO ("Marker Pattern Filename: %s", pattern_filename_);
 	
+
+	//grab transform file name
+	n_param.param ("marker_transforms_list", local_path, default_path_tfs);
+	sprintf (transforms_filename_, "%s", local_path.c_str ());
+	ROS_INFO ("Transforms Filename: %s", transforms_filename_);
+
     // **** subscribe
 
     ROS_INFO ("Subscribing to info topic");
@@ -141,6 +149,12 @@ namespace ar_pose
     if ((object = ar_object::read_ObjData (pattern_filename_, &objectnum)) == NULL)
       ROS_BREAK ();
     ROS_DEBUG ("Objectfile num = %d", objectnum);
+
+	// load in the transform data - transform of marker frame wrt center frame
+    if ((tfs= ar_transforms::read_Transforms (transforms_filename_, objectnum)) == NULL)
+      ROS_BREAK ();
+    ROS_DEBUG ("Objectfile num = %d", objectnum);
+
 
     sz_ = cvSize (cam_param_.xsize, cam_param_.ysize);
 #if ROS_VERSION_MINIMUM(1, 9, 0)
