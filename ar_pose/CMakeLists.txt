@@ -30,6 +30,7 @@ rosbuild_genmsg()
 #rosbuild_add_executable(example examples/example.cpp)
 #target_link_libraries(example ${PROJECT_NAME})
 
+
 include_directories('/usr/local/include/')
 link_directories('/usr/local/lib/')
 
@@ -42,7 +43,7 @@ set(ARPOSEMULTI_SRC   src/ar_multi.cpp src/object.cpp)
 set(ARPOSEMULTI_LIBS  GLU GL glut ARgsub AR ARMulti ARvideo)
 
 set(ARPOSEBUNDLE 	  ar_bundle)
-set(ARPOSEBUNDLE_SRC  src/ar_bundle.cpp src/object.cpp)
+set(ARPOSEBUNDLE_SRC  src/ar_bundle.cpp src/transforms.cpp)
 set(ARPOSEBUNDLE_LIBS GLU GL glut ARgsub AR ARMulti ARvideo)
 
 rosbuild_add_executable(${ARPOSESINGLE}  ${ARPOSESINGLE_SRC})

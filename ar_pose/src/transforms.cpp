@@ -1,25 +1,29 @@
 
 /* 
-** ARToolKit object parsing function 
-**   - reads in object data from object file in Data/object_data
-**
+** Reads in transforms (in transform matrix format) from markers to center of object.
+** Each marker in the marker file must have a corresponding transform.
+** Meant to be used with the ar_bundle node. 
+** 
 ** Format:
-** <obj_num>
+** <obj_num>	#must be same number as marker file, and same order
 **
-** <obj_name>
-** <obj_pattern filename>
-** <marker_width>
-** <centerX centerY>
+** #Transformation matrix, representing
+** #transform of marker frame with respect to center frame
+** 1 0 0 X
+** 0 1 0 Y
+** 0 0 1 Z
 **
+** 1 0 0 X
+** 0 1 0 Y
+** 0 0 1 Z
 ** ...
 **
 **	eg
 **
-**	#pattern 1
-**	Hiro
-**	Data/hiroPatt 
-**	80.0
-**	0.0 0.0
+** #transform for marker 1
+** 1 0 0 20 
+** 0 1 0 0 
+** 0 0 1 0 
 **
 */
 
@@ -36,6 +40,14 @@ namespace ar_object
 {
 
   static char *get_buff (char *buf, int n, FILE * fp);
+
+
+  Transform *read_Transforms (char* name, int givenObjNum)	{
+
+	Transform *list;
+	return list;
+
+  }
 
   ObjectData_T *read_ObjData (char *name, int *objectnum)
   {
