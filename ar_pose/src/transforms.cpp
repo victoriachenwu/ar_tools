@@ -47,6 +47,8 @@ namespace ar_transforms
 	Transform_T *list;
     FILE *fp;
 	int objectnum;
+	int i;
+	int row, col;
     char buf[256], buf1[256];
       std::string package_path = ros::package::getPath (ROS_PACKAGE_NAME);
 
@@ -65,15 +67,49 @@ namespace ar_transforms
       ROS_BREAK ();
     }
 	if(objectnum != givenObjNum)	{
-	  ROS_INFO("Incorrect number of Transform matrices provided - quitting.");
+	  ROS_INFO("Number of Transform matrices provided does not match number of markers provided - quitting.");
 	  ROS_BREAK ();
 	}
 
- 
+    ROS_INFO ("About to load %d Transform Matrices", givenObjNum);
+
+	list =  (Transform_T *) malloc (sizeof (Transform_T) * givenObjNum);
+    if (list == NULL)
+      ROS_BREAK ();
+
+
+	printf("--------------------------\n");
+	for (i = 0; i< givenObjNum; i++)	{
+	  printf("reading in matrix for marker #%d\n", i);
+      for( row = 0; row <  3; row++)	{
+			  get_buff (buf, 256, fp);
+			  printf("%s", buf);
+			  if (sscanf (buf, "%lf %lf %lf %lf", 
+						  &list[i][row][col], &list[i][row][col+1], &list[i][row][col+2], &list[i][row][col+3]) != 4)
+			  {
+				fclose (fp);
+				free (list);
+				ROS_BREAK ();
+			  }
+	  }
+
+	}
+	ROS_INFO("Finished loading matrices.");
+
+
+	//let's print them.. see if it worked O.O
+	printf("--------------------------\n");
+	for(i = 0; i< givenObjNum; i++)	{
+		printf("stored matrix for marker #%d\n", i);
+		for(row = 0; row < 3; row++)	{
+			for (col = 0; col< 4 ; col++) printf("%f ", list[i][row][col]);	
+			printf("\n");
+		}
+		printf("\n");
+	}
 	return list;
 
   }
-
   /*
   ObjectData_T *read_ObjData (char *name, int *objectnum)
   {
