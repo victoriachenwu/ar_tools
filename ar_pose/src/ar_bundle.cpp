@@ -25,10 +25,14 @@
 #include "ar_pose/ar_bundle.h"
 #include "ar_pose/object.h"
 #include "ar_pose/transforms.h"
+#include <ros/console.h>
 
 int main (int argc, char **argv)
 {
   ros::init (argc, argv, "ar_multi");
+  if( ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug) ) {
+		     ros::console::notifyLoggerLevelsChanged();
+  }
   ros::NodeHandle n;
   ar_pose::ARBundlePublisher ar_multi (n);
   ros::spin ();
@@ -141,6 +145,9 @@ namespace ar_pose
 
   void ARBundlePublisher::arInit ()
   {
+
+
+    ROS_INFO("Starting arInit");
     arInitCparam (&cam_param_);
     ROS_INFO ("*** Camera Parameter ***");
     arParamDisp (&cam_param_);
@@ -153,8 +160,8 @@ namespace ar_pose
 	// load in the transform data - transform of marker frame wrt center frame
     if ((tfs= ar_transforms::read_Transforms (transforms_filename_, objectnum)) == NULL)
       ROS_BREAK ();
-    ROS_DEBUG ("Objectfile num = %d", objectnum);
-
+    ROS_DEBUG ("Read in transforms successfully");
+    
 
     sz_ = cvSize (cam_param_.xsize, cam_param_.ysize);
 #if ROS_VERSION_MINIMUM(1, 9, 0)
@@ -336,7 +343,6 @@ namespace ar_pose
   
 	} //end outer loop of for 
     arMarkerPub_.publish(arPoseMarkers_);
-    ROS_DEBUG ("Published ar_multi markers");
   
   }
 
