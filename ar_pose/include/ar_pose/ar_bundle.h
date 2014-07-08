@@ -120,10 +120,8 @@ namespace ar_pose
 	//added stuff for tracking center of box
 //	double marker_to_center_trans_[3][4];	//transform from the marker to the center of the box (static)... for now it's defined here
 	double master_trans_[3][4];				//final transform from camera -> boxcenter (or backwards.. no idea T.T)
-	double marker1_to_master[3][4];			//TERRIBLE AND hardcoded for now
-	double marker2_to_master[3][4];			//TERRIBLE AND hardcoded for now
 
-    ar_pose::ARMarkers arPoseMarkers_;
+	ar_pose::ARMarkers arPoseMarkers_;
     int threshold_;
     bool getCamInfo_;
     bool publishTf_;

@@ -48,8 +48,9 @@ namespace ar_transforms
     FILE *fp;
 	int objectnum;
 	int i;
-	int row, col;
-    char buf[256], buf1[256];
+	int row;
+	int col = 0;
+    char buf[256];
       std::string package_path = ros::package::getPath (ROS_PACKAGE_NAME);
 
       ROS_INFO ("Opening Transform Data File %s", name);

@@ -30,9 +30,11 @@
 int main (int argc, char **argv)
 {
   ros::init (argc, argv, "ar_multi");
-  if( ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug) ) {
+
+  /*if( ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug) ) {
 		     ros::console::notifyLoggerLevelsChanged();
   }
+  */
   ros::NodeHandle n;
   ar_pose::ARBundlePublisher ar_multi (n);
   ros::spin ();
@@ -155,12 +157,12 @@ namespace ar_pose
     // load in the object data - trained markers and associated bitmap files
     if ((object = ar_object::read_ObjData (pattern_filename_, &objectnum)) == NULL)
       ROS_BREAK ();
-    ROS_DEBUG ("Objectfile num = %d", objectnum);
+    ROS_INFO("Objectfile num = %d", objectnum);
 
 	// load in the transform data - transform of marker frame wrt center frame
     if ((tfs= ar_transforms::read_Transforms (transforms_filename_, objectnum)) == NULL)
       ROS_BREAK ();
-    ROS_DEBUG ("Read in transforms successfully");
+    ROS_INFO("Read in transforms successfully");
     
 
     sz_ = cvSize (cam_param_.xsize, cam_param_.ysize);
@@ -172,35 +174,7 @@ namespace ar_pose
     capture_ = cvCreateImage (sz_, IPL_DEPTH_8U, 4);
 #endif
 
-	//loading up marker to center transforms	
-	////this will go away in another file.. but for now it's horrible and hardcoded
-	marker1_to_master[0][0] = 1;
-	marker1_to_master[1][1] = 1;
-	marker1_to_master[2][2] = 1;
-	marker1_to_master[2][3] = -100;	//silly arbitrary numbers for now
 	
-	/*
-	 * OK this is weird. world-> camera has a transform... and the axis are all messed up.
-	 * Currently it's supposed to be 
-	 * x forward red 
-	 * y left green
-	 * z up blue
-	 *
-	 * but the marker is instead... blue forward, red left, green up T.T 
-	 *
-	 * so in that reference frame.. it needs to be rotated about the green (y) axis
-	 *
-	 * THERE HAS TO BE A CLASS THAT DOES THIS FOR ME
-	 *
-	 * 0	0	-1	
-	 * 0	1	0
-	 * 1	0	0
-	 */
-	marker2_to_master[0][2] = -1;	
-	marker2_to_master[1][1] = 1;
-	marker2_to_master[2][0] = 1;
-	marker2_to_master[2][3] = -100;	//silly arbitrary numbers for now
-		
   }
 
   void ARBundlePublisher::getTransformationCallback (const sensor_msgs::ImageConstPtr & image_msg)
@@ -362,17 +336,7 @@ namespace ar_pose
 
   }
   void ARBundlePublisher::findTransformToCenter(double camera_to_marker_trans[3][4], int knownPatternCount)	{
- 	///... this is going to be ugly
-	//hard coded shenanigans for now (only 2 markers)
-	switch (knownPatternCount)	{
-		case 0:
-			arUtilMatMul(camera_to_marker_trans, marker1_to_master, master_trans_);
-			break;
-		case 1:
-			arUtilMatMul(camera_to_marker_trans, marker2_to_master, master_trans_);
-			break;
-	}
-	
+	arUtilMatMul(camera_to_marker_trans, tfs[knownPatternCount], master_trans_);
   }
   void ARBundlePublisher::stuffARMarkerMsg(int knownPatternCount,  
   	double pos[3], double quat[4],std_msgs::Header image_header, ARMarkerInfo *marker_info)		{
