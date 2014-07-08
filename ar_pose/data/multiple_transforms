@@ -1,11 +1,24 @@
-2
+4
 
 #arbitrarily the master tag
 1	0	0	0
 0	1	0	0
 0	0	1	-100
 
-#rotated about green axis
+#sample2 - rotated about green axis -90 deg 
 0	0	-1	0
 0	1	0	0
 1	0	0	-100
+
+
+#kanji
+#rotated about green axis, 180 deg
+-1	0	0	0
+0	1	0	0
+0	0	-1	-100
+
+#sample1
+#rotated about green axis, 90 deg
+0	0	1	0
+0	1	0	0
+-1	0	0	-100
