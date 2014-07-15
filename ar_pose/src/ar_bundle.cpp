@@ -77,12 +77,7 @@ namespace ar_pose
 	  sprintf (pattern_filename_, "%s", local_path.c_str ());
 	}
 	ROS_INFO ("Marker Pattern Filename: %s", pattern_filename_);
-	
 
-	//grab transform file name
-	n_param.param ("marker_transforms_list", local_path, default_path_tfs);
-	sprintf (transforms_filename_, "%s", local_path.c_str ());
-	ROS_INFO ("Transforms Filename: %s", transforms_filename_);
 
     // **** subscribe
 
@@ -155,15 +150,18 @@ namespace ar_pose
     arParamDisp (&cam_param_);
 
     // load in the object data - trained markers and associated bitmap files
-    if ((object = ar_object::read_ObjData (pattern_filename_, &objectnum)) == NULL)
+//    if ((object = ar_object::read_ObjData (pattern_filename_, &objectnum)) == NULL)
+		if( (config = arMultiReadConfigFile(pattern_filename_)) == NULL ) {
+	  
       ROS_BREAK ();
-    ROS_INFO("Objectfile num = %d", objectnum);
+		}
 
+	/*
 	// load in the transform data - transform of marker frame wrt center frame
     if ((tfs= ar_transforms::read_Transforms (transforms_filename_, objectnum)) == NULL)
       ROS_BREAK ();
     ROS_INFO("Read in transforms successfully");
-    
+   */ 
 
     sz_ = cvSize (cam_param_.xsize, cam_param_.ysize);
 #if ROS_VERSION_MINIMUM(1, 9, 0)
@@ -183,6 +181,7 @@ namespace ar_pose
     ARMarkerInfo *marker_info;
     int marker_num;
     int knownPatternCount, k, j;
+		double err;
 
     /* Get the image from ROSTOPIC
      * NOTE: the dataPtr format is BGR because the ARToolKit library was
@@ -218,8 +217,90 @@ namespace ar_pose
     }
 
     arPoseMarkers_.markers.clear ();
+		if( (err=arMultiGetTransMat(marker_info, marker_num, config)) < 0 ) {
+      argCleanup ();
+      ROS_BREAK ();
+    }
+
+//		printf("err = %f\n", err);
+		if(err > 100.0 ) {
+			argCleanup ();
+      ROS_BREAK ();
+		}
+		for( knownPatternCount = 0; knownPatternCount < config->marker_num; knownPatternCount++ ) {
+			if( config->marker[knownPatternCount].visible >= 1 )	{
+			  double arQuat[4], arPos[3];	//for the marker
+      	double masterARQuat[4], masterARPos[3];	//for the master/center of the box 
+      
+				arUtilMat2QuatPos (config->marker[knownPatternCount].trans, arQuat, arPos);
+      	arUtilMat2QuatPos (config->trans, masterARQuat, masterARPos);
+
+      // **** convert to ROS frame
+				double quat[4], pos[3];
+				double masterQuat[4], masterPos[3];
+				convertToRosFrame(arQuat, arPos, quat, pos);
+		  	convertToRosFrame(masterARQuat, masterARPos, masterQuat, masterPos);
+
+				ROS_DEBUG (" Object num %i------------------------------------------------", knownPatternCount);
+				ROS_DEBUG (" QUAT: Pos x: %3.5f  y: %3.5f  z: %3.5f", pos[0], pos[1], pos[2]);
+				ROS_DEBUG ("     Quat qx: %3.5f qy: %3.5f qz: %3.5f qw: %3.5f", quat[0], quat[1], quat[2], quat[3]);
+
+      // **** prepare to publish the marker
+			  stuffARMarkerMsg(knownPatternCount, pos, quat,image_msg->header, marker_info);		
+ 
+
+      // **** publish transform between camera and marker
+
+#if ROS_VERSION_MINIMUM(1, 9, 0)
+				tf::Quaternion rotation (quat[0], quat[1], quat[2], quat[3]);
+				tf::Vector3 origin (pos[0], pos[1], pos[2]);
+				tf::Transform t (rotation, origin);
+#else
+// DEPRECATED: Fuerte support ends when Hydro is released
+				btQuaternion rotation (quat[0], quat[1], quat[2], quat[3]);
+				btVector3 origin (pos[0], pos[1], pos[2]);
+				btTransform t (rotation, origin);
+#endif
+
+				tf::Quaternion masterRotation (masterQuat[0], masterQuat[1], masterQuat[2], masterQuat[3]);
+				tf::Vector3 masterOrigin (masterPos[0], masterPos[1], masterPos[2]);
+				tf::Transform masterTransform (masterRotation, masterOrigin);
+
+				if (publishTf_)
+				{
+					tf::StampedTransform camToMarker (t, image_msg->header.stamp, image_msg->header.frame_id, object[knownPatternCount].name);
+					broadcaster_.sendTransform(camToMarker);
+
+					tf::StampedTransform camToMaster (masterTransform, image_msg->header.stamp, image_msg->header.frame_id, "master");
+        	broadcaster_.sendTransform(camToMaster);
+      	}
+
+				// **** publish visual marker
+
+				if (publishVisualMarkers_)
+				{
+#if ROS_VERSION_MINIMUM(1, 9, 0)
+					tf::Vector3 markerOrigin (0, 0, 0.25 * object[knownPatternCount].marker_width * AR_TO_ROS);
+					tf::Transform m (tf::Quaternion::getIdentity (), markerOrigin);
+					tf::Transform markerPose = t * m; // marker pose in the camera frame 
+#else
+// DEPRECATED: Fuerte support ends when Hydro is released
+					btVector3 markerOrigin (0, 0, 0.25 * object[i].marker_width * AR_TO_ROS);
+					btTransform m (btQuaternion::getIdentity (), markerOrigin);
+					btTransform markerPose = t * m; // marker pose in the camera frame
+#endif
+
+					publishVisualMarker(knownPatternCount, markerPose, image_msg->header); 
+
+			}
+			//if it ain't visible i don't care about it
+		}
+
+    arMarkerPub_.publish(arPoseMarkers_);
+
     // check for known patterns
-    for (knownPatternCount = 0; knownPatternCount < objectnum; knownPatternCount++)
+    /*
+		for (knownPatternCount = 0; knownPatternCount < objectnum; knownPatternCount++)
     {
       k = -1;	//haven't yet seen my pattern yet. 
 	  //marker_num is how many markers were actually found
@@ -316,8 +397,8 @@ namespace ar_pose
 	  }
   
 	} //end outer loop of for 
-    arMarkerPub_.publish(arPoseMarkers_);
-  
+	*/
+		} 
   }
 
   void ARBundlePublisher::getMarkerTransform(int knownPatternCount, ARMarkerInfo *marker_info, int seenPatternCount)	{
@@ -335,9 +416,11 @@ namespace ar_pose
 
 
   }
-  void ARBundlePublisher::findTransformToCenter(double camera_to_marker_trans[3][4], int knownPatternCount)	{
+  /*
+	void ARBundlePublisher::findTransformToCenter(double camera_to_marker_trans[3][4], int knownPatternCount)	{
 	arUtilMatMul(camera_to_marker_trans, tfs[knownPatternCount], master_trans_);
   }
+	*/
   void ARBundlePublisher::stuffARMarkerMsg(int knownPatternCount,  
   	double pos[3], double quat[4],std_msgs::Header image_header, ARMarkerInfo *marker_info)		{
   

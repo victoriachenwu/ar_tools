@@ -1,0 +1,42 @@
+#the number of patterns to be recognized
+4
+
+#hiro
+/home/vicky/ros/src/ar_tools/ar_pose/data/patt.hiro
+80.0
+0.0 0.0
+1	0	0	0
+0	1	0	0
+0	0	1	-100
+
+
+#sample2
+/home/vicky/ros/src/ar_tools/ar_pose/data/patt.sample2
+80.0
+0.0 0.0
+#sample2 - rotated about green axis -90 deg 
+0	0	-1	0
+0	1	0	0
+1	0	0	-100
+
+
+
+#kanji
+/home/vicky/ros/src/ar_tools/ar_pose/data/patt.kanji
+79.0
+0.0 0.0
+#rotated about green axis, 180 deg
+-1	0	0	0
+0	1	0	0
+0	0	-1	-100
+
+
+
+#sample1
+/home/vicky/ros/src/ar_tools/ar_pose/data/patt.sample1
+80.0
+0.0 0.0
+#rotated about green axis, 90 deg
+0	0	1	0
+0	1	0	0
+-1	0	0	-100
