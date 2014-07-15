@@ -56,17 +56,21 @@ Visualization Manager:
       Enabled: true
       Frame Timeout: 1
       Frames:
-        4x4_1:
-          Value: false
-        4x4_2:
-          Value: false
         All Enabled: false
         camera:
           Value: false
+        hiro:
+          Value: false
+        kanji:
+          Value: false
         master:
           Value: true
+        sample1:
+          Value: false
+        sample2:
+          Value: false
         world:
-          Value: true
+          Value: false
       Marker Scale: 1
       Name: TF
       Show Arrows: false
@@ -75,11 +79,15 @@ Visualization Manager:
       Tree:
         world:
           camera:
-            4x4_1:
+            hiro:
               {}
-            4x4_2:
+            kanji:
               {}
             master:
+              {}
+            sample1:
+              {}
+            sample2:
               {}
       Update Interval: 0
       Value: true
@@ -165,5 +173,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 913
-  X: 522
-  Y: 292
+  X: 177
+  Y: 153
