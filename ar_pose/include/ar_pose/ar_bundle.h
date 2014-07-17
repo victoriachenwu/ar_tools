@@ -25,6 +25,7 @@
 #ifndef AR_POSE_AR_BUNDLE_H_
 #define AR_POSE_AR_BUNDLE_H_
 
+#include <fstream>	//for writing to output file
 #include <string.h>
 #include <stdarg.h>
 
@@ -91,6 +92,8 @@ namespace ar_pose
 	//given the transform matrix of a marker, find where the "center" or master is 
 	void findTransformToCenter(double camera_to_marker_trans[3][4], int knownPatternCount);
 
+	//writing to file the output
+	std::ofstream output;
 
     ros::NodeHandle n_;
     tf::TransformBroadcaster broadcaster_;
@@ -116,9 +119,8 @@ namespace ar_pose
     int objectnum;
     char pattern_filename_[FILENAME_MAX];
     char transforms_filename_[FILENAME_MAX];
+    char pose_output_filename_[FILENAME_MAX];
 
-	//added stuff for tracking center of box
-//	double marker_to_center_trans_[3][4];	//transform from the marker to the center of the box (static)... for now it's defined here
 	double master_trans_[3][4];				//final transform from camera -> boxcenter (or backwards.. no idea T.T)
 
 	ar_pose::ARMarkers arPoseMarkers_;
@@ -126,6 +128,7 @@ namespace ar_pose
     bool getCamInfo_;
     bool publishTf_;
     bool publishVisualMarkers_;
+	bool outputToFile;
     CvSize sz_;
 #if ROS_VERSION_MINIMUM(1, 9, 0)
     cv_bridge::CvImagePtr capture_;

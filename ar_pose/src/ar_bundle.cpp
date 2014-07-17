@@ -49,6 +49,7 @@ namespace ar_pose
     std::string package_path = ros::package::getPath (ROS_PACKAGE_NAME);
 	std::string default_path = "data/object_4x4";
 	std::string default_path_tfs = "data/tfs";
+	std::string default_path_output = "data/pose_info.txt";
     ros::NodeHandle n_param ("~");
     XmlRpc::XmlRpcValue xml_marker_center;
 
@@ -84,6 +85,26 @@ namespace ar_pose
 	sprintf (transforms_filename_, "%s", local_path.c_str ());
 	ROS_INFO ("Transforms Filename: %s", transforms_filename_);
 
+	//grab output txt file name
+	
+    if (!n_param.getParam ("output_pose", outputToFile))	{
+      outputToFile = false;
+      ROS_INFO ("\tNot outputting pose to file");
+	}
+	else	{
+	    if(outputToFile)	{
+			ROS_INFO ("Outputting Pose");
+			n_param.param ("pose_output_file", local_path, default_path_output);
+			sprintf (pose_output_filename_, "%s", local_path.c_str ());
+			ROS_INFO ("pose output Filename: %s", pose_output_filename_);
+			output.open(pose_output_filename_);
+		}
+		else	{
+      		ROS_INFO ("\tNot outputting pose to file");
+		
+		}
+	}
+
     // **** subscribe
 
     ROS_INFO ("Subscribing to info topic");
@@ -104,6 +125,9 @@ namespace ar_pose
     //cvReleaseImage(&capture_); //Don't know why but crash when release the image
     arVideoCapStop ();
     arVideoClose ();
+	if(outputToFile)	{
+		output.close();
+	}
   }
 
   void ARBundlePublisher::camInfoCallback (const sensor_msgs::CameraInfoConstPtr & cam_info)
@@ -149,6 +173,7 @@ namespace ar_pose
   {
 
 
+
     ROS_INFO("Starting arInit");
     arInitCparam (&cam_param_);
     ROS_INFO ("*** Camera Parameter ***");
@@ -164,6 +189,7 @@ namespace ar_pose
       ROS_BREAK ();
     ROS_INFO("Read in transforms successfully");
     
+	
 
     sz_ = cvSize (cam_param_.xsize, cam_param_.ysize);
 #if ROS_VERSION_MINIMUM(1, 9, 0)
@@ -247,7 +273,6 @@ namespace ar_pose
       double arQuat[4], arPos[3];	//for the marker
       double masterARQuat[4], masterARPos[3];	//for the master/center of the box 
 
-
 	  //find the transform for the pattern to the center of the box
 	  //updates master_trans_
 	  findTransformToCenter(object[knownPatternCount].trans, knownPatternCount);
@@ -261,6 +286,12 @@ namespace ar_pose
       double masterQuat[4], masterPos[3];
 	  convertToRosFrame(arQuat, arPos, quat, pos);
 	  convertToRosFrame(masterARQuat, masterARPos, masterQuat, masterPos);
+	
+	  //write pos and quat out to text file 
+	  if (outputToFile)	{
+	  	output << "hi";	
+		ROS_INFO("wheeee");
+	  }
 
 	  ROS_DEBUG (" Object num %i------------------------------------------------", knownPatternCount);
       ROS_DEBUG (" QUAT: Pos x: %3.5f  y: %3.5f  z: %3.5f", pos[0], pos[1], pos[2]);
