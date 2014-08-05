@@ -47,6 +47,9 @@
 
 #include <opencv/cv.h>
 
+#include <sensor_msgs/Image.h>
+
+
 #if ROS_VERSION_MINIMUM(1, 9, 0)
   // new cv_bridge API in Groovy
   #include <cv_bridge/cv_bridge.h> 
@@ -67,7 +70,7 @@ const std::string cameraImageTopic_ = "/camera/image_raw";
 const std::string cameraInfoTopic_  = "/camera/camera_info";
 
 const double AR_TO_ROS = 0.001;
-
+const int BUFFER_SIZE = 100;
 namespace ar_pose
 {
   class ARBundlePublisher
@@ -94,8 +97,9 @@ namespace ar_pose
 
 	//writing to file the output
 	std::ofstream output;
+	char buffer[BUFFER_SIZE];
 
-    ros::NodeHandle n_;
+	ros::NodeHandle n_;
     tf::TransformBroadcaster broadcaster_;
     ros::Subscriber sub_;
     image_transport::Subscriber cam_sub_;

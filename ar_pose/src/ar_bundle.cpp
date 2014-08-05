@@ -98,6 +98,8 @@ namespace ar_pose
 			sprintf (pose_output_filename_, "%s", local_path.c_str ());
 			ROS_INFO ("pose output Filename: %s", pose_output_filename_);
 			output.open(pose_output_filename_);
+			output << "#Pose estimation of object wrt camera. X forward, Y left, Z up\n#time in seconds since epoch,position(x), position(y), position(z), q_x, q_y, q_z, q_w \n" << std::endl;
+
 		}
 		else	{
       		ROS_INFO ("\tNot outputting pose to file");
@@ -289,8 +291,22 @@ namespace ar_pose
 	
 	  //write pos and quat out to text file 
 	  if (outputToFile)	{
-	  	output << "hi";	
-		ROS_INFO("wheeee");
+		  //need to output video tick
+		  //i know this is incredibly incredibly not efficient :(
+		  //TODO: output tick as well, from the camera_raw msg
+
+
+		//convert nanoseconds -> seconds
+		snprintf(buffer, BUFFER_SIZE, "[%10.10f]", 
+			image_msg->header.stamp.toNSec()*1e-9);
+	  	output << buffer <<  ",";	
+	  	output << masterPos[0] << ",";	
+	  	output << masterPos[1] << ",";	
+	  	output << masterPos[2] << ",";	
+	  	output << masterQuat[0] << ",";	
+	  	output << masterQuat[1] << ",";	
+	  	output << masterQuat[2] << ",";	
+	  	output << masterQuat[3] << "\n";	
 	  }
 
 	  ROS_DEBUG (" Object num %i------------------------------------------------", knownPatternCount);
