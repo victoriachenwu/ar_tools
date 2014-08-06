@@ -94,12 +94,23 @@ namespace ar_pose
 	else	{
 	    if(outputToFile)	{
 			ROS_INFO ("Outputting Pose");
-			n_param.param ("pose_output_file", local_path, default_path_output);
+			n_param.param ("pose_output_file_prefix", local_path, default_path_output);
 			sprintf (pose_output_filename_, "%s", local_path.c_str ());
-			ROS_INFO ("pose output Filename: %s", pose_output_filename_);
-			output.open(pose_output_filename_);
+			ROS_INFO ("pose output Filename prefix: %s", pose_output_filename_);
+
+			//open a timestamped one
+			memset(&buffer[0], '\0', sizeof(buffer));
+			time_t rawtime; 
+			struct tm* timeinfo;
+			time(&rawtime);
+			timeinfo = localtime (&rawtime);
+			strftime (buffer,80,"-%F-%H-%M-%S.txt",timeinfo);
+			std::string str(buffer);
+			local_path.append(str);	
+			output.open(local_path.c_str());
 			output << "#Pose estimation of object wrt camera. X forward, Y left, Z up\n#time in seconds since epoch,position(x), position(y), position(z), q_x, q_y, q_z, q_w \n" << std::endl;
 
+			memset(&buffer[0], '\0', sizeof(buffer));
 		}
 		else	{
       		ROS_INFO ("\tNot outputting pose to file");
@@ -297,7 +308,7 @@ namespace ar_pose
 
 
 		//convert nanoseconds -> seconds
-		snprintf(buffer, BUFFER_SIZE, "[%10.10f]", 
+		snprintf(buffer, BUFFER_SIZE, "%10.10f", 
 			image_msg->header.stamp.toNSec()*1e-9);
 	  	output << buffer <<  ",";	
 	  	output << masterPos[0] << ",";	

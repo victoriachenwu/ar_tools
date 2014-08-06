@@ -49,6 +49,7 @@
 
 #include <sensor_msgs/Image.h>
 
+#include <time.h>	//for timestamping pose output file
 
 #if ROS_VERSION_MINIMUM(1, 9, 0)
   // new cv_bridge API in Groovy
