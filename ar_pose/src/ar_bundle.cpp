@@ -347,8 +347,9 @@ namespace ar_pose
 
       if (publishTf_)
       {
-        tf::StampedTransform camToMarker (t, image_msg->header.stamp, image_msg->header.frame_id, object[knownPatternCount].name);
-        broadcaster_.sendTransform(camToMarker);
+		//no need to publish tfs of markers
+       // tf::StampedTransform camToMarker (t, image_msg->header.stamp, image_msg->header.frame_id, object[knownPatternCount].name);
+      //  broadcaster_.sendTransform(camToMarker);
 
 		tf::StampedTransform camToMaster (masterTransform, image_msg->header.stamp, image_msg->header.frame_id, "master");
         broadcaster_.sendTransform(camToMaster);
