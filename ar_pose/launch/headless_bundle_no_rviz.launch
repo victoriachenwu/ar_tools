@@ -1,0 +1,23 @@
+<!--
+	NOT live pose tracking of multiple markers.
+	Requires messages published to /camera/camera_info and /camera/image_raw
+	No visualization either.
+
+-->
+<launch>
+  <node pkg="tf" type="static_transform_publisher" name="world_to_cam" 
+    args="0 0 0.5 -1.57 0 -1.57 world camera 1" />
+  <node ns="camera" pkg="image_proc" type="image_proc" name="image_proc"/>
+    <node name="ar_pose" pkg="ar_pose" type="ar_bundle" respawn="false"
+    output="screen">
+    <param name="marker_pattern_list" type="string"
+      value="$(find ar_pose)/data/multiple"/>
+    <param name="threshold" type="int" value="100"/>
+	<param name="marker_transforms_list" type="string"
+      value="$(find ar_pose)/data/multiple_transforms"/>
+	<param name="pose_output_file_prefix" type="string"
+      value="$(find ar_pose)/output/pose_output"/>
+	<param name="output_pose" type="boolean"
+	  value="true"/>
+  </node>
+</launch>
