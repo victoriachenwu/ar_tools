@@ -11,10 +11,10 @@
     <node name="ar_pose" pkg="ar_pose" type="ar_bundle" respawn="false"
     output="screen">
     <param name="marker_pattern_list" type="string"
-      value="$(find ar_pose)/data/multiple"/>
+      value="$(find ar_pose)/config/multiple"/>
     <param name="threshold" type="int" value="100"/>
 	<param name="marker_transforms_list" type="string"
-      value="$(find ar_pose)/data/multiple_transforms"/>
+      value="$(find ar_pose)/config/multiple_transforms"/>
 	<param name="pose_output_file_prefix" type="string"
       value="$(find ar_pose)/output/pose_output"/>
 	<param name="output_pose" type="boolean"
