@@ -14,7 +14,11 @@ Make sure your camera is [calibrated](http://wiki.ros.org/camera_calibration/Tut
 ###Running
 
 To launch with live marker tracking:
-```roslaunch ar_tools ar_pose_multi.launch```
+```
+roslaunch ar_tools ar_pose_multi.launch
+```
 
 To launch without live marker tracking (with a recorded camera_info rosbag):
-``` roslaunch ar_tools headless_bundle_no_rviz.launch ```
+```
+roslaunch ar_tools headless_bundle_no_rviz.launch
+```
