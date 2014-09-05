@@ -18,7 +18,7 @@ More information on this project is available [here] (https://sites.google.com/s
 Two files are required - one describing pattern info, one describing pattern transforms. 
 Modify the parameter values below in the launch file to point to the locations of these files. 
 
-  * Paramter name: `marker_pattern_list` 
+  * Parameter name: `marker_pattern_list` 
     * Specifies how many markers, and info for each marker.
     * [Example file] (https://github.com/vptarmigan/ar_tools/blob/master/ar_pose/config/multiple)
   * Parameter name:`marker_transforms_list`
@@ -39,3 +39,8 @@ To launch without live marker tracking (with a recorded camera_info rosbag):
 ```
 roslaunch ar_tools headless_bundle_no_rviz.launch
 ```
+
+
+###Future Work/Improvements
+* This package uses `ar_pose` as its base. If more optimization is needed, it is recommended to take a look at, `ar_track_alvar`, that wraps a modified and optimized version of ARToolkit.    
+* ARToolkit provides a built in [function] (http://www.hitl.washington.edu/artoolkit/documentation/tutorialmulti.htm), `arMultiGetTransMat()` that essentially tracks multiple markers as one target. That function encapsulates the algorithm in this package's `ar_bundle.cpp`, but is not used in this package due to time constraints + difficulty testing ARToolkit's function. Future work could be done in incorporating this function instead. 
