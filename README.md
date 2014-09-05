@@ -6,7 +6,7 @@ This modified package enables tracking of multiple markers, as if they were a si
 
 [Here] (http://vptarmigan.wordpress.com/2014/06/23/setting-up-ar_tools-ros-package/) is a short tutorial on running ROS and installing this package.
 
-More information on this project is available [here] (https://sites.google.com/site/umdminirobotreu2014wu/).
+Check the [project website] (https://sites.google.com/site/umdminirobotreu2014wu/) for more info.
 
 
 ###Subscribed topics 
