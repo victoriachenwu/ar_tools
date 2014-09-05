@@ -11,11 +11,19 @@ More information on this project is available [here] (https://sites.google.com/s
 
 ###Subscribed topics 
 
-* /camera/camera_info - Calibration info for camera (specific to each physical camera)
-* /camera/image_raw
+* `/camera/camera_info` - Calibration info for camera (specific to each physical camera)
+* `/camera/image_raw`
 
 ###Input Files
+Two files are required - one describing pattern info, one describing pattern transforms. 
+Modify the parameter values below in the launch file to point to the locations of these files. 
 
+  * Paramter name: `marker_pattern_list` 
+    * Specifies how many markers, and info for each marker.
+    * [Example file] (https://github.com/vptarmigan/ar_tools/blob/master/ar_pose/config/multiple)
+  * Parameter name:`marker_transforms_list`
+    * Specifies, for each marker, the transformation matrix relating each marker frame to a common frame. 
+    *  [Example file] (https://github.com/vptarmigan/ar_tools/blob/master/ar_pose/config/multiple_transforms)
 
 
 ###Running
